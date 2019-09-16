@@ -7,17 +7,17 @@ export class Draw {
 		this.ctx = ctx;
 		this.snake = snake;
 		this.done = false;
+		this.isReplay = false;
 		this.run = null;
-		// this.stop = null;
 	}
 
 	preGame() {
-		this.showTitleScreen('PRESS "ENTER" TO PLAY');
+		this.translateTitleScreen('PRESS "ENTER" TO PLAY', 25, 2.5);
 	}
 
 	gameOver() {
 		this.clearCanvas();
-		this.showTitleScreen(`GAME OVER!`);
+		this.translateTitleScreen(`GAME OVER!`, 25, 5);
 		this.displayGameTip();
 
 		this.setStageFacade('rgba(68,68,68, .2)');
@@ -27,18 +27,20 @@ export class Draw {
 	newGame() {
 		this.clearCanvas();
 		this.snake.stage.config.fps = 100;
+		this.done = false;
+		this.snake.stage.difficulty = this.snake.stage.config.fps;
 		this.snake.restartGame();
 	}
 
-	showTitleScreen(title) {
+	translateTitleScreen(title, x, y) {
 		this.ctx.save();
-		this.ctx.translate(130, this.snake.stage.height / 2.5);
+		this.ctx.translate(x, this.snake.stage.height / y);
 		this.ctx.strokeStyle = 'rgb(68, 68, 68)';
 		this.ctx.lineWidth = 2;
-		this.ctx.strokeRect(0, 0, this.snake.stage.width / 2, 50);
+		this.ctx.strokeRect(0, 0, this.snake.stage.width / 1.25, this.snake.stage.width / 5);
 		this.ctx.fillStyle = 'rgb(68,68,68)';
-		this.ctx.font = '16px sans-serif';
-		this.ctx.fillText(title, 25, this.snake.stage.height - 470);
+		this.ctx.font = '14px sans-serif';
+		this.ctx.fillText(title, this.snake.stage.width / title.length, this.snake.stage.height / 8);
 		this.ctx.restore();
 	}
 
@@ -49,13 +51,13 @@ export class Draw {
 	displayFinalScore() {
 		this.ctx.save();
 		this.ctx.strokeStyle = 'rgb(68, 68, 68)';
-		this.ctx.translate(30, this.snake.stage.height / 2);
+		this.ctx.translate(0, this.snake.stage.height / 2);
 		this.ctx.fillStyle = 'rgb(68,68,68)';
-		this.ctx.font = '16px sans-serif';
+		this.ctx.font = 'bold 14px sans-serif';
 		this.ctx.fillText(
 			`HIGH SCORE: ${this.snake.stage.score}`,
-			this.snake.stage.width / 3.25,
-			this.snake.stage.height / 2.2
+			this.snake.stage.width / 3.5,
+			this.snake.stage.height / 2.5
 		);
 		this.ctx.restore();
 	}
@@ -63,10 +65,10 @@ export class Draw {
 	displayGameTip() {
 		this.ctx.save();
 		this.ctx.strokeStyle = 'rgb(68, 68, 68)';
-		this.ctx.translate(30, this.snake.stage.height / 2);
+		this.ctx.translate(0, this.snake.stage.height / 5);
 		this.ctx.fillStyle = 'rgb(68,68,68)';
 		this.ctx.font = '12px sans-serif';
-		this.ctx.fillText(`Press "Space" to replay`, this.snake.stage.width / 3.25, this.snake.stage.height - 470);
+		this.ctx.fillText(`Press "SPACE" to replay`, this.snake.stage.width / 4, this.snake.stage.height / 2);
 		this.ctx.restore();
 	}
 	// draw stage
@@ -76,15 +78,6 @@ export class Draw {
 		//TODO: add borders, its colors etc.
 	}
 
-	traceSnakePosition() {}
-
-	checkDirectionControls() {
-		let keyPress = this.snake.stage.keyEvent.getKey();
-		if (keyPress) {
-			this.snake.stage.direction = keyPress;
-		}
-	}
-
 	implementFood(x, y) {
 		let tail;
 		if (x === this.snake.stage.food.x && y === this.snake.stage.food.y) {
@@ -92,7 +85,7 @@ export class Draw {
 				x,
 				y
 			};
-			this.snake.stage.score += 10;
+			this.snake.stage.score += 1;
 
 			this.snake.initFood();
 		} else {
@@ -112,36 +105,42 @@ export class Draw {
 
 	drawStage() {
 		//position
-		let nx = this.snake.stage.blocks[0].x;
-		let ny = this.snake.stage.blocks[0].y;
+		let dx = this.snake.stage.blocks[0].x;
+		let dy = this.snake.stage.blocks[0].y;
 
-		this.checkDirectionControls();
+		let keyPress = this.snake.stage.keyEvent.getKey();
+		if (keyPress) {
+			this.snake.stage.direction = keyPress;
+		}
+
 		this.setStageFacade('white');
 
 		switch (this.snake.stage.direction) {
 			case 'right':
-				nx++;
+				dx += 1;
 				break;
 			case 'left':
-				nx--;
+				dx -= 1;
 				break;
 			case 'up':
-				ny--;
+				dy -= 1;
 				break;
 			case 'down':
-				ny++;
+				dy += 1;
 				break;
 		}
 
-		if (this.isCollided(nx, ny)) {
+		if (this.isCollided(dx, dy)) {
 			this.done = true;
-			clearInterval(this.run);
+			this.isReplay = true;
+			clearTimeout(this.run)
 			this.gameOver();
 
 			return;
+
 		}
 
-		this.implementFood(nx, ny);
+		this.implementFood(dx, dy);
 		this.drawSnake();
 		this.drawCell(this.snake.stage.food.x, this.snake.stage.food.y);
 
@@ -158,9 +157,11 @@ export class Draw {
 
 	// Check Collision with walls
 	isCollided(ax, ay) {
+		// Collision with walls
 		let widthLine = this.snake.stage.width / this.snake.stage.config.cw;
 		let heightLine = this.snake.stage.height / this.snake.stage.config.cw;
 
+		// Self collision
 		let selfCollision = false;
 
 		for (let i = 1; i < this.snake.stage.blocks.length; i++) {
@@ -169,7 +170,7 @@ export class Draw {
 			if (x == ax && x > 3 && y == ay) selfCollision = true;
 		}
 
-		if (~[ -1, widthLine ].indexOf(ax) || ~[ -1, heightLine ].indexOf(ay) || selfCollision) {
+		if (~[-1, widthLine].indexOf(ax) || ~[-1, heightLine].indexOf(ay) || selfCollision) {
 			return true;
 		}
 		return false;
@@ -182,30 +183,74 @@ export class Snake {
 		let ctx = canvas.getContext('2d');
 
 		let snake = new Components.Snake(canvas, cfg);
-		let gameDraw = new Draw(ctx, snake);
 
-		// Game Interval
-		gameDraw.preGame();
+		this.keysPressed = [];
+		this.game = new Draw(ctx, snake);
 
-		document.addEventListener('keypress', (e) => {
-			switch (e.keyCode) {
-				case 13:
-					e.preventDefault();
-					this.runGame(gameDraw, gameDraw.done);
-					break;
+		//Display Game Menu 
+		this.game.preGame();
 
-				case 32:
-					e.preventDefault()
-					gameDraw.newGame();
-					this.runGame(gameDraw);
-					break;
-			}
-		});
+		//Listen to keydown
+		$(document).on('keydown', e => this.handleGameControls(e))
 	}
 
-	runGame(game, over) {
-		game.run = setInterval(() => {
-			if (!over) game.drawStage();
-		}, game.snake.stage.config.fps - game.snake.stage.score > 30 ? game.snake.stage.config.fps - game.snake.stage.score : 30);
+	updateSnakeMovement(key) {
+		if (this.game.snake.stage.direction != 'right' && key === 37) this.game.snake.stage.direction = 'left';
+		else if (this.game.snake.stage.direction != 'left' && key === 39) this.game.snake.stage.direction = 'right';
+		else if (this.game.snake.stage.direction != 'down' && key === 38) this.game.snake.stage.direction = 'up';
+		else if (this.game.snake.stage.direction != 'up' && key === 40) this.game.snake.stage.direction = 'down';
+	}
+
+	keyIsAlreadyPressed(which) {
+		return $.inArray(which, this.keysPressed) !== -1
+	}
+
+	handleGameControls(e) {
+	
+		switch (e.which) {
+			case 13:
+				// firing Enter key once
+				if (this.keyIsAlreadyPressed(e.which)) return;
+
+				if (!this.game.isReplay) {
+					this.keysPressed.push(e.which);
+					this.keysPressed = $.unique(this.keysPressed)
+					this.runGame(this.game);
+				}
+				break;
+
+			case 32:
+				// prevent space pressed during game
+				this.keysPressed.push(e.which);
+				this.keysPressed = $.unique(this.keysPressed);
+
+				if (this.game.done) {
+					this.keysPressed.splice(1)
+					this.game.newGame();
+					this.runGame(this.game);
+
+					if (this.keyIsAlreadyPressed(e.which)) return;
+				} else {
+					//blocking spacebar from occasional press
+					if (this.keyIsAlreadyPressed(e.which)) return;
+				}
+				break;
+
+			default:
+				this.updateSnakeMovement(e.which);
+		}
+	}
+
+	runGame(g) {
+		g.run = setTimeout(function tick() {
+			if (!g.done) {
+				setTimeout(
+					tick,
+					g.snake.stage.increaseDifficulty()
+				)
+
+				g.drawStage();
+			} else clearTimeout(tick);
+		}, g.snake.stage.difficulty)
 	}
 }
