@@ -1,7 +1,7 @@
 # Snake Game
 Minimalistic tetris game recognized by vast majority of people across the globe
 
-Written in VanillaJS with ES6 flavor. 
+Written in VanillaJS with some jQuery flavor. 
 
 ## How To Play
 The game has been released for only PC/Laptop platforms only. With the development and support, mobile version support is coming soon.
