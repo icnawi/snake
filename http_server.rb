@@ -37,7 +37,7 @@ def requested_file(request_line)
   File.join(WEB_ROOT, *clean)
 end
 
-server = TCPServer.new('localhost', 2345)
+server = TCPServer.new('localhost', 8081)
 
 loop do
   socket       = server.accept
